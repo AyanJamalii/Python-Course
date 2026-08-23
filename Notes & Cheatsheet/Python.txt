@@ -1,0 +1,9 @@
+Python, if we open the terminal anywhere and just write python and press enter so it will show us the date of that version installed n all, also we can use it as an calculator, just type any numeric case and it will answer.
+
+We call that process REPL ---> READ EVALUATE PRINT LOOP
+
+Not only numeric, we cant print anything, if i type print("I'm Ayan.") , it will print it in the terminal.
+
+In Python we can use "#" for commenting out something, in SINGLE LINE. 
+
+FOR Multiple lines we use (""") 3 double quotes and then write something so it will comment out everything inside. 
