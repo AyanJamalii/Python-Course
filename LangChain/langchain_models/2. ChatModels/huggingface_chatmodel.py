@@ -6,7 +6,6 @@ load_dotenv()
 
 token = os.getenv("HUGGINGFACEHUB_ACCESS_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN")
 
-# Reliable free-tier model setup
 llm = HuggingFaceEndpoint(
     repo_id="Qwen/Qwen2.5-72B-Instruct",
     huggingfacehub_api_token=token,
@@ -14,7 +13,6 @@ llm = HuggingFaceEndpoint(
     timeout=30
 )
 
-# Chat wrapper wrapper that manages API payloads correctly
 chat_model = ChatHuggingFace(llm=llm)
 
 response = chat_model.invoke("What is the capital of Pakistan?")
