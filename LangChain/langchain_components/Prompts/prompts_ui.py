@@ -29,4 +29,7 @@ if st.button("Generate Response"):
     if user_prompt:
         with st.spinner("processing locally...."):
             response = model.invoke(user_prompt)
-            st.write(response.content)
+            clean_text = response.content
+            if "<|assistant|>" in clean_text:
+                clean_text = clean_text.split("<|assistant|>")[-1].strip()
+            st.write(clean_text)
