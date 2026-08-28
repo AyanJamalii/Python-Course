@@ -1,7 +1,7 @@
 import streamlit as st
 import warnings
 from langchain_huggingface import ChatHuggingFace, HuggingFacePipeline
-from langchain_core.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate, load_prompt
 
 warnings.filterwarnings("ignore")
 
@@ -15,7 +15,7 @@ def load_local_model():
         task="text-generation",
         pipeline_kwargs={
             "temperature": 0.5,
-            "max_new_tokens": 200
+            "max_new_tokens": 500
         }
     )
     return ChatHuggingFace(llm=llm)
@@ -53,12 +53,9 @@ length_input = st.selectbox(
         "Long (detailed explanation)"
     ]
 )
+# reusing the Dyanamic Prompt template:
+template = load_prompt('template.json')
 
-template = PromptTemplate(
-    template="""Please explain the research paper '{paper_name}' in a {style} style. 
-Keep the explanation length {length}. Provide a clear and accurate summary.""",
-    input_variables=["paper_name", "style", "length"]
-)
 if st.button("Summarize"):
     with st.spinner("Analyzing research paper locally..."):
         # Create final prompt using PromptTemplate

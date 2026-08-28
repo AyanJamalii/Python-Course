@@ -1,0 +1,17 @@
+{
+    "name": null,
+    "input_variables": [
+        "length",
+        "paper_name",
+        "style"
+    ],
+    "optional_variables": [],
+    "output_parser": null,
+    "partial_variables": {},
+    "metadata": null,
+    "tags": null,
+    "template": "Please explain the research paper '{paper_name}' in a {style} style. \nKeep the explanation length {length}. Provide a clear and accurate summary.",
+    "template_format": "f-string",
+    "validate_template": false,
+    "_type": "prompt"
+}
