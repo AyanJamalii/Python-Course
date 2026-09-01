@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 from typing import TypedDict, Annotated, Optional, Literal
 from pydantic import BaseModel, Field
 
-load_dotenv()
+load_dotenv() 
 
 model = ChatGoogleGenerativeAI(model="gemini-3.6-flash")
 
