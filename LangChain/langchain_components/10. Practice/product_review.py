@@ -16,7 +16,6 @@ model = ChatGoogleGenerativeAI(model="gemini-3.5-flash")
 str_parser = StrOutputParser()
 
 
-# 1. Pydantic Model Definition
 class Feedback(BaseModel):
     sentiment: Literal["positive", "negative", "neutral"] = Field(
         description="Give the sentiment of the feedback"
@@ -25,7 +24,6 @@ class Feedback(BaseModel):
 
 pydantic_parser = PydanticOutputParser(pydantic_object=Feedback)
 
-# 2. Classifier Prompt
 prompt_1 = PromptTemplate(
     template="Classify the sentiment of the following feedback text into positive, negative, or neutral.\n{feedback}\n{format_instruction}",
     input_variables=["feedback"],
@@ -36,7 +34,6 @@ prompt_1 = PromptTemplate(
 
 classifier_chain = prompt_1 | model | pydantic_parser
 
-# 3. Action Prompts (Strict Constraints)
 prompt_apology = PromptTemplate(
     template="Write a short 2-sentence empathetic apology response for this negative customer feedback:\n{feedback}",
     input_variables=["feedback"],
@@ -60,12 +57,11 @@ action_branch = RunnableBranch(
     RunnableLambda(lambda x: "Could not process response."),
 )
 
-# 5. Full Parallel Chain Pipeline
 full_chain = (
     RunnableParallel(
         {
             "sentiment": classifier_chain,
-            "feedback": lambda x: x["feedback"],  # Pass original text forward
+            "feedback": lambda x: x["feedback"],  
         }
     )
     | RunnableParallel(
@@ -76,7 +72,6 @@ full_chain = (
     )
 )
 
-# --- Execution ---
 test_review_1 = "The battery life of this phone is awful and it heats up within 10 minutes of use."
 test_review_2 = (
     "The camera quality is decent, but the delivery took a few extra days."
