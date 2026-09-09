@@ -2,35 +2,60 @@ from dotenv import load_dotenv
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.runnables import RunnableParallel, RunnableLambda
 
 load_dotenv()
 model = ChatGoogleGenerativeAI(model="gemini-3.5-flash")
 parser = StrOutputParser()
 
-# Step 1: Category aur Urgency extract karne ka prompt
 prompt_extract = PromptTemplate(
     template="Analyze this feedback and return ONLY 'Category | Urgency':\nFeedback: {feedback}",
     input_variables=["feedback"],
 )
-
-# Step 3: Internal support note prompt
 prompt_note = PromptTemplate(
-    template="[INTERNAL ESCALATION NOTE]\nCategory: {category}\nUrgency: {urgency}\nCustomer Feedback: {original_feedback}\nRecommended Next Action: Write 1 clear action step for support staff.",
-    input_variables=["category", "urgency", "original_feedback"],
+    template="[INTERNAL ESCLATION NOTE]\n"
+    "Reciept ID: {reciept_id}\n" 
+    "Category: {category}\n" 
+    "Urgency: {urgency}\n"
+    "Customer Feedback: {original_feedback}\n\n"
+    "Recommended Next Action: Write 1 clear, actionable step for the support team.",
+    input_variables=["reciept_id", "category", "urgency", "original_feedback"],
 )
 
-# --- YOUR TASK ---
-# Single LCEL chain banayein jo:
-# 1. prompt_extract | model | parser se output laye ("Category | Urgency")
-# 2. Lambda function se us string ko split('|') kare aur 'original_feedback' ke sath dict banaye
-# 3. prompt_note | model | parser ko pipe kare
+user_reciept_id = input("Enter your Reciept/Order ID: ").strip()
+user_feedback = input("Enter your Feedback here: ").strip()
 
+feedback_chain = (
+    RunnableParallel(
+            {
+                "extraction_raw": prompt_extract | model | parser,
+                "reciept_id": lambda x: x["reciept_id"],
+                "feedback": lambda x: x["feedback"],
+            }
+        )
+            | RunnableLambda(
+                lambda x: {
+                    "reciept_id":   x["reciept_id"],
+                    "category": x["extraction_raw"].split("|")[0].strip(),
+                    "urgency": x["extraction_raw"].split("|")[1].strip(),
+                    "original_feedback": x["feedback"],
+                }
+            )
+    
+    | prompt_note
+    | model
+    | parser
+)
 
-extracter_chain = prompt_extract | model | parser | (lambda x : {"category": x.split('|')[0].strip(), "urgency": x.split('|')[1].strip(), "original_feedback": test_feedback}) | prompt_note | model | parser
+result = feedback_chain.invoke(
+    {
+        "reciept_id": user_reciept_id,
+        "feedback": user_feedback
+    }
+)
 
-
-test_feedback = "I was double charged on my credit card for order #4092! Fix this immediately or I am reporting to my bank."
-result_1 = extracter_chain.invoke({'feedback': test_feedback})
-print(result_1)
+print("\n" + "=" * 40)
+print(result)
+print("=" * 40)
 
 
