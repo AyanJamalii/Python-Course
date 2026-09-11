@@ -1,0 +1,39 @@
+==================================================
+ACADEMIC NOTES: ARTIFICIAL INTELLIGENCE & AGENTS
+Subject: Computer Science (BSCS)
+Topic: Document Loaders, Vector Search, and RAG
+==================================================
+
+1. OVERVIEW OF RAG PIPELINES
+Retrieval-Augmented Generation (RAG) is a pattern used to optimize the output of Large Language Models (LLMs) by referencing an authoritative knowledge base outside its training data sources before generating a response.
+
+Key Benefits of RAG:
+- Prevents Model Hallucinations by providing real context.
+- Cost-effective compared to fine-tuning large models.
+- Keeps domain knowledge up to date without retraining.
+
+2. DOCUMENT LOADERS IN LANGCHAIN
+Document Loaders are responsible for loading data from a source as a list of Document objects.
+A standard Document object in LangChain consists of two core components:
+- page_content: The string text representation of the file or data chunk.
+- metadata: A dictionary containing contextual information (e.g., source file path, page number, creation date).
+
+Common Document Loaders:
+- TextLoader: Loads plain text files (.txt, .md).
+- PyPDFLoader: Extracts content and metadata page-by-page from PDF files.
+- WebBaseLoader: Fetches and parses HTML content from web URLs using BeautifulSoup.
+- DirectoryLoader: Scans a folder and loads all files matching a specific pattern.
+
+3. TEXT SPLITTING & CHUNKING STRATEGIES
+Raw text loaded from files is usually too long to fit directly into an LLM context window or single vector embedding. Therefore, it must be broken down into smaller chunks.
+
+Recommended Text Splitter:
+- RecursiveCharacterTextSplitter: Splitting text by a list of characters (paragraphs \n\n, lines \n, spaces) in order until chunks are small enough.
+
+Ideal Chunk Configuration:
+- chunk_size: 500 characters
+- chunk_overlap: 50 characters (preserves context continuity between boundaries)
+
+4. TROUBLESHOOTING FILE ENCODINGS
+When loading text files via Python, encodings can sometimes cause runtime errors (e.g., UnicodeDecodeError).
+Always explicitly define utf-8 encoding when initializing TextLoader in LangChain.
