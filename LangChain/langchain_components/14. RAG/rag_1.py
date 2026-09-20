@@ -11,11 +11,9 @@ from langchain_core.runnables import RunnablePassthrough
 from langchain_core.output_parsers import StrOutputParser
 
 
-# for ignoring Warnings.
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
-# for importing the API_KEY, Not Hardcoding it.
 load_dotenv()
 
 def get_youtube_data(video_id):
@@ -69,3 +67,5 @@ query = "What is the main topic discussed in this video?"
 response = rag_chain.invoke(query)
 
 print("Response:\n", response)
+
+# FIX KARNA HA KAL LAZMII
