@@ -1,6 +1,7 @@
 import os
 import re
 import warnings
+from urllib.parse import urlparse, parse_qs
 
 from dotenv import load_dotenv
 from googleapiclient.discovery import build
@@ -23,25 +24,28 @@ load_dotenv()
 
 
 def extract_video_id(video_url):
-    patterns = [
-        r"(?:youtube\.com/watch\?v=)([^&]+)",
-        r"(?:youtu\.be/)([^?&]+)",
-        r"(?:youtube\.com/shorts/)([^?&]+)",
-        r"(?:youtube\.com/embed/)([^?&]+)",
-    ]
+    parsed_url = urlparse(video_url)
 
-    for pattern in patterns:
-        match = re.search(pattern, video_url)
+    if parsed_url.hostname in ["www.youtube.com", "youtube.com"]:
+        if parsed_url.path == "/watch":
+            video_id = parse_qs(parsed_url.query).get("v")
 
-        if match:
-            return match.group(1)
+            if video_id:
+                return video_id[0]
+
+        if parsed_url.path.startswith("/shorts/"):
+            return parsed_url.path.split("/shorts/")[1].split("/")[0]
+
+        if parsed_url.path.startswith("/embed/"):
+            return parsed_url.path.split("/embed/")[1].split("/")[0]
+
+    elif parsed_url.hostname in ["youtu.be", "www.youtu.be"]:
+        return parsed_url.path.lstrip("/").split("/")[0]
 
     raise ValueError("Invalid YouTube URL")
 
 
-def get_youtube_data(video_url):
-    video_id = extract_video_id(video_url)
-
+def get_video_title(video_id):
     youtube_key = os.getenv("YOUTUBE_API_KEY")
 
     if not youtube_key:
@@ -53,35 +57,84 @@ def get_youtube_data(video_url):
         developerKey=youtube_key
     )
 
-    video_response = youtube.videos().list(
+    response = youtube.videos().list(
         part="snippet",
         id=video_id
     ).execute()
 
-    items = video_response.get("items", [])
+    items = response.get("items", [])
 
     if not items:
-        raise ValueError(f"Video not found: {video_url}")
+        raise ValueError(f"Video not found: {video_id}")
 
-    title = items[0]["snippet"]["title"]
+    return items[0]["snippet"]["title"]
+
+
+def get_youtube_data(video_url):
+    video_id = extract_video_id(video_url)
+    title = get_video_title(video_id)
 
     ytt_api = YouTubeTranscriptApi()
 
-    transcript = ytt_api.fetch(
-        video_id,
-        languages=["hi"]
-        ).to_raw_data()
+    transcript_list = ytt_api.list(video_id)
+
+    transcripts = list(transcript_list)
+
+    if not transcripts:
+        raise ValueError("No transcripts are available for this video.")
+
+    preferred_transcripts = []
+
+    for transcript in transcripts:
+        language_code = transcript.language_code
+
+        if language_code == "en":
+            preferred_transcripts.append(transcript)
+
+    for transcript in transcripts:
+        if transcript not in preferred_transcripts:
+            preferred_transcripts.append(transcript)
+
+    selected_transcript = preferred_transcripts[0]
+
+    fetched_transcript = selected_transcript.fetch()
 
     full_transcript = " ".join(
-        item["text"] for item in transcript
+        snippet.text for snippet in fetched_transcript
     )
 
-    return f"Title: {title}\n\nTranscript:\n{full_transcript}"
+    print(f"\nVideo: {title}")
+    print(f"Transcript language: {selected_transcript.language}")
+    print(f"Language code: {selected_transcript.language_code}")
+    print(
+        f"Type: "
+        f"{'Auto-generated' if selected_transcript.is_generated else 'Manually created'}"
+    )
+
+    available_languages = [
+        transcript.language
+        for transcript in transcripts
+    ]
+
+    print(
+        f"Available transcript languages: "
+        f"{', '.join(available_languages)}"
+    )
+
+    return f"""
+Title: {title}
+
+Transcript language: {selected_transcript.language}
+
+Transcript:
+{full_transcript}
+"""
 
 
 video_url = input("Paste YouTube video URL: ").strip()
 
 raw_text = get_youtube_data(video_url)
+
 
 text_splitter = RecursiveCharacterTextSplitter(
     chunk_size=1000,
@@ -89,6 +142,7 @@ text_splitter = RecursiveCharacterTextSplitter(
 )
 
 splits = text_splitter.create_documents([raw_text])
+
 
 embeddings = GoogleGenerativeAIEmbeddings(
     model="gemini-embedding-2"
@@ -103,19 +157,25 @@ retriever = vectorstore.as_retriever(
     search_kwargs={"k": 3}
 )
 
+
 llm = ChatGoogleGenerativeAI(
     model="gemini-3.5-flash",
     temperature=0
 )
 
+
 prompt = ChatPromptTemplate.from_template(
     """
 You are a helpful assistant.
 
-Answer the user's question only using the provided
+Answer the user's question using only the provided
 YouTube video transcript context.
 
-If the answer is not present in the context,
+The transcript may be in any language.
+Understand the transcript and answer the user
+in the same language as the user's question.
+
+If the answer is not present in the transcript,
 say that the information is not available in the transcript.
 
 Context:
@@ -151,4 +211,3 @@ response = rag_chain.invoke(query)
 
 print("\nResponse:\n")
 print(response)
-
