@@ -6,6 +6,7 @@ import requests
 import os
 from langchain_core.tools import InjectedToolArg
 from typing import Annotated
+import json
 
 load_dotenv()
 
@@ -35,10 +36,24 @@ print(convert.invoke({'base_currency': 10, 'conversation_rate':0.003605}))
 
 llm = ChatGoogleGenerativeAI(model="gemini-3.5-flash")
 
-llm_with_tools = llm.bind_tools([get_conversion_factor, convert])
+llm_with_tools = llm.bind_tools([get_conversion_factor, convert], tool_choice="any")
 
 messages = [
     HumanMessage('What is the conversion factor between usd and pkr and based on that can you convert 10 usd to pkr')
 ]
 ai_message = llm_with_tools.invoke(messages)
-print(ai_message.tool_calls)
+messages.append(ai_message)
+ai_message.tool_calls
+
+
+for tool_call in ai_message.tool_calls:
+    if tool_call['name'] == 'get_conversion_factor':
+        tool_message_1 = get_conversion_factor.invoke(tool_call)
+        convertion_rate = json.loads(tool_message_1.content)['conversion_rate']
+        messages.append(tool_message_1)
+    if tool_call['name'] == 'convert':
+        # fetch the current arg
+        tool_call['args']['conversion_rate'] = convertion_rate
+        tool_message_2 = convert.invoke(tool_call)
+        messages.append(tool_message_2)
+print(llm_with_tools.invoke(messages).content)
