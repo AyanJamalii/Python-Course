@@ -11,3 +11,6 @@ print(multiply.description)
 print(multiply.args)
 print(res)
 
+# LANGCHAIN IS COMPLETED
+
+# WILL BE MOVING TOWards LangGraph NOW :)
